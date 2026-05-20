@@ -13,8 +13,8 @@ SPI-controlled PWN peripheral for Tiny Tapeout
 
 ## How to test
 
-Explain how to use your project
+test1
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+test2
