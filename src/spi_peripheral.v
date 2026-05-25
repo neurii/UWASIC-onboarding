@@ -55,11 +55,11 @@ assign data = msg[7:0];
 
 assign is_valid;
 
-assign is_valid = write_bit && (addr <= 7'04) && (bit_count == 5'd16);
+assign is_valid = rw_bit && (addr <= 7'04) && (bit_count == 5'd16);
 
 //reset logic??
 //ff logic(clock) sequential -> non blocking
-always @(posedge elk or negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin // reset
         en_reg_out_7_0 <= 8'h00;
         en_reg_out_15_8 <= 8'h00;
