@@ -25,6 +25,10 @@ module tt_um_onboarding (
   wire [7:0] en_reg_pwm_15_8;
   wire [7:0] pwm_duty_cycle;
 
+  wire sclk = uio_in[0];
+  wire copi = uio_in[1];
+  wire ncs = uio_in[2];
+
   // Instantiate the PWM module
   pwm_peripheral pwm_peripheral_inst (
     .clk(clk),

@@ -10,9 +10,9 @@ module spi_peripheral (
     input wire rst_n,
 
     //input assignments for peripheral
-    input wire sclk,
-    input wire copi,
-    input wire ncs,
+    input wire sclk, //0
+    input wire copi, //1
+    input wire ncs, //2
     
     //five registers from the register map in section 2. about out design
     output reg [7:0] en_reg_out_7_0,
