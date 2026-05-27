@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge
+from cocotb.triggers import RisingEdge # this!@!!!!!!!!!!!!!!
 from cocotb.triggers import ClockCycles
 from cocotb.types import Logic
 from cocotb.types import LogicArray
@@ -41,9 +41,9 @@ async def send_spi_transaction(dut, r_w, address, data):
         data_int = data
     # Validate inputs
     if address < 0 or address > 127:
-        raise ValueError("Address must be 7-bit (0-127)")
+        raise ValueError("Address must be 7-bit (0-127)") # did i did this
     if data_int < 0 or data_int > 255:
-        raise ValueError("Data must be 8-bit (0-255)")
+        raise ValueError("Data must be 8-bit (0-255)") # range check in spi_peripheral needed
     # Combine RW and address into first byte
     first_byte = (int(r_w) << 7) | address
     # Start transaction - pull CS low
@@ -153,6 +153,82 @@ async def test_spi(dut):
 async def test_pwm_freq(dut):
     # Write your test here
     dut._log.info("PWM Frequency test completed successfully")
+
+    # test if PWM freq is 3kHz, 3000 per sec, period = 1 / freq
+    # period = second posedge - first posedge
+
+    # Set the clock period to 100 ns (10 MHz)
+    clock = Clock(dut.clk, 100, units="ns")
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut._log.info("Reset")
+    dut.ena.value = 1
+    dut.ui_in.value = ui_in_logicarray(1, 0, 0)
+
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
+
+    dut._log.info("Write transaction, address 0x00, data 0x01") # uo_out[0] output enable
+    await send_spi_transaction(dut, 1, 0x00, 0x01)
+    await ClockCycles(dut.clk, 100)
+    
+    dut._log.info("Write transaction, address 0x02, data 0x01") # uo_out[0] PWM enable
+    await send_spi_transaction(dut, 1, 0x02, 0x01)
+    await ClockCycles(dut.clk, 100)
+
+    dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
+    await send_spi_transaction(dut, 1, 0x04, 0x01)
+    await ClockCycles(dut.clk, 100)
+
+    # find rising edge
+    previous = int(dut.uo_out.value) & 1 # save uo_out[0] value
+    first_rising_time = None
+
+    for _ in range(5000):
+        await RisingEdge(dut.clk)
+        current = int(dut.uo_out.value) & 1
+
+        if previous == 0 and current == 1:
+            first_rising_time = cocotb.utils.get_sim_time(units="ns")
+            break
+
+        previous = current
+
+    assert first_rising_time is not None, "DId not see first PWM rising edge"
+
+    # find rising edge
+    previous = int(dut.uo_out.value) & 1 # save uo_out[0] value
+    second_rising_time = None
+
+    for _ in range(5000):
+        await RisingEdge(dut.clk)
+        current = int(dut.uo_out.value) & 1
+
+        if previous == 0 and current == 1:
+            second_rising_time = cocotb.utils.get_sim_time(units="ns")
+            break
+
+        previous = current
+
+    assert second_rising_time is not None, "DId not see first PWM rising edge"
+
+    period_ns = second_rising_time - first_rising_time
+    freq_hz = 1e9 / period_ns
+
+    dut._log.info(f"PWM period: {period_ns} ns")
+    dut._log.info(f"PWM freq: {freq_hz} Hz")
+
+    assert 2970 <= freq_hz <= 3030, (
+        f"Expected PWM frequncy between 2970 and 3030 Hz, got {freq_hz} Hz"
+    )
+
+    dut._log.info("PWM freq test completed successfully")
+
+
 
 
 @cocotb.test()
