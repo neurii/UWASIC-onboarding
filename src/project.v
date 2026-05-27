@@ -25,9 +25,9 @@ module tt_um_onboarding (
   wire [7:0] en_reg_pwm_15_8;
   wire [7:0] pwm_duty_cycle;
 
-  wire sclk = uio_in[0];
-  wire copi = uio_in[1];
-  wire ncs = uio_in[2];
+  wire sclk = ui_in[0];
+  wire copi = ui_in[1];
+  wire ncs = ui_in[2];
 
   // Instantiate the PWM module
   pwm_peripheral pwm_peripheral_inst (
@@ -52,7 +52,7 @@ module tt_um_onboarding (
       .en_reg_out_15_8(en_reg_out_15_8),
       .en_reg_pwm_7_0(en_reg_pwm_7_0),
       .en_reg_pwm_15_8(en_reg_pwm_15_8),
-      .pwm_duty_cycle(pwm_duty_cycle),
+      .pwm_duty_cycle(pwm_duty_cycle)
     );
 
     // All output pins must be assigned. If not used, assign to 0.

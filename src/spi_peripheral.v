@@ -53,9 +53,9 @@ assign rw_bit = msg[15];
 assign addr = msg[14:8];
 assign data = msg[7:0];
 
-assign is_valid;
+wire is_valid;
 
-assign is_valid = rw_bit && (addr <= 7'04) && (bit_count == 5'd16);
+assign is_valid = rw_bit && (addr <= 7'h04) && (bit_count == 5'd16);
 
 //reset logic??
 //ff logic(clock) sequential -> non blocking
@@ -96,7 +96,7 @@ always @(posedge clk or negedge rst_n) begin
         if (ncs_negedge) begin
             msg <= 16'h0000;
             bit_count <= 5'b0;
-        end else if (sclk_posedge) begin // rst is high nCS is low AND system clk is rising
+        end else if (!ncs_negedge && sclk_posedge) begin // rst is high nCS is low AND system clk is rising
             msg <= {msg[14:0], copi_ff2};
             bit_count <= bit_count + 5'd1;
         end else if (ncs_posedge) begin // during transaction
@@ -107,7 +107,6 @@ always @(posedge clk or negedge rst_n) begin
                     7'h02: en_reg_pwm_7_0 <= data;
                     7'h03: en_reg_pwm_15_8 <= data;
                     7'h04: pwm_duty_cycle <= data;
-
                 endcase
             end
         end
