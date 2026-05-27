@@ -151,9 +151,6 @@ async def test_spi(dut):
 
 @cocotb.test()
 async def test_pwm_freq(dut):
-    # Write your test here
-    dut._log.info("PWM Frequency test completed successfully")
-
     # test if PWM freq is 3kHz, 3000 per sec, period = 1 / freq
     # period = second posedge - first posedge
 
@@ -164,7 +161,10 @@ async def test_pwm_freq(dut):
     # Reset
     dut._log.info("Reset")
     dut.ena.value = 1
-    dut.ui_in.value = ui_in_logicarray(1, 0, 0)
+    ncs = 1
+    bit = 0
+    sclk = 0
+    dut.ui_in.value = ui_in_logicarray(ncs, bit, sclk)
 
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 5)
@@ -181,7 +181,7 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 100)
 
     dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
-    await send_spi_transaction(dut, 1, 0x04, 0x01)
+    await send_spi_transaction(dut, 1, 0x04, 0x80) # 50% duty cycle, max 256, 0x80 = 128
     await ClockCycles(dut.clk, 100)
 
     # find rising edge
@@ -226,12 +226,138 @@ async def test_pwm_freq(dut):
         f"Expected PWM frequncy between 2970 and 3030 Hz, got {freq_hz} Hz"
     )
 
-    dut._log.info("PWM freq test completed successfully")
-
-
-
+    dut._log.info("PWM Frequency test completed successfully")
 
 @cocotb.test()
 async def test_pwm_duty(dut):
-    # Write your test here
+    # test if PWM freq is 3kHz, 3000 per sec, period = 1 / freq
+    # period = second posedge - first posedge
+
+    # Set the clock period to 100 ns (10 MHz)
+    clock = Clock(dut.clk, 100, units="ns")
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut._log.info("Reset")
+    dut.ena.value = 1
+    ncs = 1
+    bit = 0
+    sclk = 0
+    dut.ui_in.value = ui_in_logicarray(ncs, bit, sclk)
+
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
+
+    ##################################
+    # 0% duty cycle
+    ##################################
+    dut._log.info("Write transaction, address 0x00, data 0x01") # uo_out[0] output enable
+    await send_spi_transaction(dut, 1, 0x00, 0x01)
+    await ClockCycles(dut.clk, 100)
+    
+    dut._log.info("Write transaction, address 0x02, data 0x01") # uo_out[0] PWM enable
+    await send_spi_transaction(dut, 1, 0x02, 0x01)
+    await ClockCycles(dut.clk, 100)
+
+    dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
+    await send_spi_transaction(dut, 1, 0x04, 0x00) # 0%
+    await ClockCycles(dut.clk, 100)
+
+    await ClockCycles(dut.clk, 30000)
+
+    uo_out_0 = int(dut.uo_out.value) & 1
+    assert uo_out_0 == 0, (
+        f"Expected uo_out[0] to stay low for 0% duty, got {uo_out_0}"
+    )
+
+    ##################################
+    # 50% duty cycle
+    ##################################
+    dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
+    await send_spi_transaction(dut, 1, 0x04, 0x80) # 50%
+    await ClockCycles(dut.clk, 100)
+
+    # find rising edge
+    previous = int(dut.uo_out.value) & 1 # save uo_out[0] value
+    rising_time = None
+
+    for _ in range(5000):
+        await RisingEdge(dut.clk)
+        current = int(dut.uo_out.value) & 1
+
+        if previous == 0 and current == 1:
+            rising_time = cocotb.utils.get_sim_time(units="ns")
+            break
+
+        previous = current
+
+    assert rising_time is not None, "DId not see 50 percent rising edge"
+
+    # find falling edge
+    previous = int(dut.uo_out.value) & 1 # save uo_out[0] value
+    falling_time = None
+
+    for _ in range(5000):
+        await RisingEdge(dut.clk)
+        current = int(dut.uo_out.value) & 1
+
+        if previous == 1 and current == 0:
+            falling_time = cocotb.utils.get_sim_time(units="ns")
+            break
+
+        previous = current
+
+    assert falling_time is not None, "DId not see 50 percent falling edge"
+
+
+    # find next rising edge
+    previous = int(dut.uo_out.value) & 1 # save uo_out[0] value
+    next_rising_time = None
+
+    for _ in range(5000):
+        await RisingEdge(dut.clk)
+        current = int(dut.uo_out.value) & 1
+
+        if previous == 0 and current == 1:
+            next_rising_time = cocotb.utils.get_sim_time(units="ns")
+            break
+
+        previous = current
+
+    assert next_rising_time is not None, "DId not see 50 percent next rising edge"
+
+    high_time_ns = falling_time - rising_time
+    period_ns = next_rising_time - rising_time
+    freq_hz = 1e9 / period_ns
+    measured_duty = high_time_ns / period_ns
+
+    expected_duty = 1 / 2 # 128 /256 50%
+
+    dut._log.info(f"high time: {high_time_ns} Hz")
+    dut._log.info(f"PWM period: {period_ns} ns")
+    dut._log.info(f"PWM freq: {freq_hz} Hz")
+
+    assert abs(measured_duty - expected_duty) <= 0.01, (
+        f"Expected duty around {expected_duty * 100}%, got {measured_duty * 100}%"
+    )
+
+    ##################################
+    # 100% duty cycle
+    ##################################
+    dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
+    await send_spi_transaction(dut, 1, 0x04, 0xFF) # 0%
+    await ClockCycles(dut.clk, 100)
+
+    await ClockCycles(dut.clk, 30000)
+
+    uo_out_0 = int(dut.uo_out.value) & 1
+    assert uo_out_0 == 1, (
+        f"Expected uo_out[0] to stay high for 100% duty, got {uo_out_0}"
+    )
+
+
+
     dut._log.info("PWM Duty Cycle test completed successfully")
