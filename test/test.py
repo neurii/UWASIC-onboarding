@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge # this!@!!!!!!!!!!!!!!
+from cocotb.triggers import RisingEdge
 from cocotb.triggers import ClockCycles
 from cocotb.types import Logic
 from cocotb.types import LogicArray
@@ -252,7 +252,7 @@ async def test_pwm_duty(dut):
     await ClockCycles(dut.clk, 5)
 
     ##################################
-    # 0% duty cycle
+    ### 0% duty cycle ################
     ##################################
     dut._log.info("Write transaction, address 0x00, data 0x01") # uo_out[0] output enable
     await send_spi_transaction(dut, 1, 0x00, 0x01)
@@ -274,7 +274,7 @@ async def test_pwm_duty(dut):
     )
 
     ##################################
-    # 50% duty cycle
+    ### 50% duty cycle ###############
     ##################################
     dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
     await send_spi_transaction(dut, 1, 0x04, 0x80) # 50%
@@ -345,7 +345,7 @@ async def test_pwm_duty(dut):
     )
 
     ##################################
-    # 100% duty cycle
+    ### 100% duty cycle ##############
     ##################################
     dut._log.info("Write transaction, address 0x04, data 0x01") # pwm duty cycle
     await send_spi_transaction(dut, 1, 0x04, 0xFF) # 0%
@@ -357,7 +357,5 @@ async def test_pwm_duty(dut):
     assert uo_out_0 == 1, (
         f"Expected uo_out[0] to stay high for 100% duty, got {uo_out_0}"
     )
-
-
 
     dut._log.info("PWM Duty Cycle test completed successfully")

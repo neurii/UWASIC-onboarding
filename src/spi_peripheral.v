@@ -9,12 +9,12 @@ module spi_peripheral (
     input wire clk, //system clock = 10MHz
     input wire rst_n,
 
-    //input assignments for peripheral
+    // input assignments for peripheral
     input wire sclk, //0
     input wire copi, //1
     input wire ncs, //2
     
-    //five registers from the register map in section 2. about out design
+    // five registers from the register map in section 2. about out design
     output reg [7:0] en_reg_out_7_0,
     output reg [7:0] en_reg_out_15_8,
     output reg [7:0] en_reg_pwm_7_0,
@@ -56,8 +56,8 @@ wire is_valid;
 
 assign is_valid = rw_bit && (addr <= 7'h04) && (bit_count == 5'd16);
 
-//reset logic??
-//ff logic(clock) sequential -> non blocking
+// reset logic
+// ff logic(clock) sequential -> non blocking
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin // reset
         en_reg_out_7_0 <= 8'h00;
@@ -91,7 +91,7 @@ always @(posedge clk or negedge rst_n) begin
         sclk_prev <= sclk_ff2;
         ncs_prev <= ncs_ff2;
 
-        //start of transaction
+        // start of transaction
         if (ncs_negedge) begin
             msg <= 16'h0000;
             bit_count <= 5'b0;
@@ -106,10 +106,12 @@ always @(posedge clk or negedge rst_n) begin
                     7'h02: en_reg_pwm_7_0 <= data;
                     7'h03: en_reg_pwm_15_8 <= data;
                     7'h04: pwm_duty_cycle <= data;
+                    default: begin
+                        // out of range 0x05 ~, do nothing for invalid address
+                    end
                 endcase
             end
         end
     end
 end
-
 endmodule
