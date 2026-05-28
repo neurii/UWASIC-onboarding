@@ -294,7 +294,7 @@ async def test_pwm_duty(dut):
 
         previous = current
 
-    assert rising_time is not None, "DId not see 50 percent rising edge"
+    assert rising_time is not None, "Did not see 50 percent rising edge"
 
     # find falling edge
     previous = int(dut.uo_out.value) & 1 # save uo_out[0] value
@@ -310,7 +310,7 @@ async def test_pwm_duty(dut):
 
         previous = current
 
-    assert falling_time is not None, "DId not see 50 percent falling edge"
+    assert falling_time is not None, "Did not see 50 percent falling edge"
 
 
     # find next rising edge
