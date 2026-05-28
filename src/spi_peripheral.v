@@ -36,7 +36,6 @@ reg sclk_prev;
 reg ncs_prev;
 
 wire sclk_posedge = sclk_ff2 && !sclk_prev;
-wire sclk_negedge = !sclk_ff2 && sclk_prev;
 wire ncs_posedge = ncs_ff2 && !ncs_prev;
 wire ncs_negedge = !ncs_ff2 && ncs_prev;
 
